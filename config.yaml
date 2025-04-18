@@ -1,6 +1,6 @@
 
 redis:
-  host: 121.37.171.89
+  host: ''
   port: 6379
   password: ''
   db: 1
