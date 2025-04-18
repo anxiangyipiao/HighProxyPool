@@ -17,8 +17,8 @@ class ConfigReader:
 
     def get_flask_config(self):
         return {
-            'host': self.config['flask']['host'],
-            'port': self.config['flask']['port'],
+            'host': self.config['fastapi']['host'],
+            'port': self.config['fastapi']['port'],
         }
     
     def get_scheduler_config(self):
