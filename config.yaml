@@ -4,7 +4,7 @@
 redis:
   host: 121.37.171.89
   port: 6379
-  password: 123456zax
+  password: ''
   db: 1
 
 flask:
