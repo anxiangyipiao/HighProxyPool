@@ -1,0 +1,17 @@
+
+redis:
+  host: ''
+  port: 6379
+  password: ''
+  db: 1
+
+fastapi:
+  host: 127.0.0.1
+  port: 5000
+
+scheduler:
+  verifier_interval: 30
+  fetch_interval: 8
+  verifier_url: 'https://www.kuaidaili.com/'
+  proxy_pool_name: 'proxypool'
+  logger_name: 'app.log'
