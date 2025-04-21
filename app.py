@@ -7,8 +7,15 @@ from fastapi.concurrency import run_in_threadpool
 from utils.config_reader import flask_config, scheduler_config  # 假设你用这个读取配置
 import uvicorn  # 用于启动 FastAPI 应用
 from main import start_scheduler,close_scheduler  # 假设你有一个函数来启动调度器
+import sys
 
 
+# 配置全局日志
+logging.basicConfig(
+    level=logging.INFO,  # 设置日志级别
+    format="%(asctime)s - %(levelname)s - %(message)s",  # 日志格式
+    stream=sys.stdout  # 输出到标准输出
+)
 
 app = FastAPI(title="Proxy API", description="一个简单的代理服务 API", version="1.0.0")
 p = Proxy(proxy_pool_name=scheduler_config['proxy_pool_name'])
