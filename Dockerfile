@@ -7,8 +7,16 @@ WORKDIR /app
 # 复制项目的依赖文件
 COPY requirements.txt /app/requirements.txt
 
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    build-essential \
+    && apt-get clean
+
+
 # 安装依赖
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 复制项目代码到容器中
 COPY . /app
