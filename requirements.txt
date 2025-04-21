@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+redis
+beautifulsoup4
+requests
+pyyaml
+apscheduler

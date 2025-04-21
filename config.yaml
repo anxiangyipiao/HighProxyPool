@@ -1,13 +1,13 @@
 
 redis:
-  host: '121.37.171.89'
+  host: '127.0.0.1'
   port: 6379
   password: '123456zax'
   db: 1
 
 fastapi:
   host: 127.0.0.1
-  port: 8000
+  port: 8001
 
 scheduler:
   verifier_interval: 30
