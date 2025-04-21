@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"  # 将容器的 8001 端口映射到主机的 8001 端口
+

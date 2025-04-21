@@ -3,14 +3,13 @@ import logging
 from core.proxy_fetcher import Proxy
 from core.proxy_verifier import ProxyVerifier
 from utils.global_scheduler import GlobalScheduler
-from utils.config_reader import scheduler_config,flask_config # 假设你用这个读取配置
-import logging
+from utils.config_reader import scheduler_config # 假设你用这个读取配置
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 
-if __name__ == "__main__":
+def start_scheduler():
 
 
     logging.info("应用程序启动...")
@@ -40,7 +39,7 @@ if __name__ == "__main__":
                 proxy_pool_name=proxy_pool_name
         )
         verifier_interval = int(scheduler_config.get('verifier_interval', 30)) # 假设单位是分钟
-        scheduler.add_job(verifier_instance.clean_invalid_proxies, 'interval', seconds=verifier_interval)
+        scheduler.add_job(verifier_instance.clean_invalid_proxies, 'interval', minutes=verifier_interval)
         logging.info(f"代理验证任务已添加，每 {verifier_interval} 分钟执行一次。")
     except Exception as e:
         logging.error(f"初始化或调度 ProxyVerifier 失败: {e}")
