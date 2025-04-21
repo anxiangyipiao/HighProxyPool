@@ -56,3 +56,11 @@ def start_scheduler():
 
     # 当 keep_alive 结束时 (例如收到 Ctrl+C)，程序会继续执行到这里
     logging.info("应用程序即将退出。")
+
+
+
+def close_scheduler():
+    # 关闭全局调度器
+    scheduler = GlobalScheduler()
+    scheduler.stop()
+    logging.info("调度器已关闭。")

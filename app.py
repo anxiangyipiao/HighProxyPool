@@ -6,7 +6,7 @@ from core.proxy_fetcher import Proxy
 from fastapi.concurrency import run_in_threadpool
 from utils.config_reader import flask_config, scheduler_config  # 假设你用这个读取配置
 import uvicorn  # 用于启动 FastAPI 应用
-from main import start_scheduler  # 假设你有一个函数来启动调度器
+from main import start_scheduler,close_scheduler  # 假设你有一个函数来启动调度器
 
 
 
@@ -35,3 +35,4 @@ if __name__ == "__main__":
         logging.error(f"发生异常: {e}")
     finally:
         logging.info("程序退出。")
+        close_scheduler()  # 确保调度器关闭
