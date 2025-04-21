@@ -28,8 +28,14 @@ if __name__ == "__main__":
         scheduler_thread = threading.Thread(target=start_scheduler, daemon=True)
         scheduler_thread.start()
 
-        # 启动 FastAPI 应用
-        uvicorn.run(app, host=flask_config['host'], port=flask_config['port'])
+        # 启动 FastAPI 应用，并启用自定义日志配置
+        uvicorn.run(
+            app,
+            host=flask_config['host'],
+            port=flask_config['port'],
+            log_level="info",  # 设置 uvicorn 的日志级别
+            access_log=True  # 启用访问日志
+        )
     except Exception as e:
         # 捕获异常并记录日志
         logging.error(f"发生异常: {e}")

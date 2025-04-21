@@ -1,11 +1,15 @@
 import logging
+import sys
 import requests
 from utils.redis_client import RedisObject
 import ast
 
 
-# 配置日志
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,  # 设置日志级别
+    format="%(asctime)s - %(levelname)s - %(message)s",  # 日志格式
+    stream=sys.stdout  # 输出到标准输出
+)
 
 
 class ProxyVerifier:

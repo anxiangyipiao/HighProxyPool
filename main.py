@@ -4,8 +4,14 @@ from core.proxy_fetcher import Proxy
 from core.proxy_verifier import ProxyVerifier
 from utils.global_scheduler import GlobalScheduler
 from utils.config_reader import scheduler_config # 假设你用这个读取配置
+import sys
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# 配置日志输出到标准输出
+logging.basicConfig(
+    level=logging.INFO,  # 设置日志级别
+    format="%(asctime)s - %(levelname)s - %(message)s",  # 日志格式
+    stream=sys.stdout  # 输出到标准输出
+)
 
 
 
