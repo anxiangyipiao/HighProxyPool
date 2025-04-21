@@ -1,23 +1,13 @@
 
 redis:
-<<<<<<< HEAD
   host: '121.37.171.89'
   port: 6379
   password: '123456zax'
-=======
-  host: ''
-  port: 6379
-  password: ''
->>>>>>> ae7311624accaeba06f05241f5a906e5476f90ca
   db: 1
 
 fastapi:
   host: 127.0.0.1
-<<<<<<< HEAD
   port: 8000
-=======
-  port: 5000
->>>>>>> ae7311624accaeba06f05241f5a906e5476f90ca
 
 scheduler:
   verifier_interval: 30
