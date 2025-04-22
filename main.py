@@ -1,4 +1,5 @@
 # FILE: main.py
+import asyncio
 import logging
 from core.proxy_fetcher import Proxy
 from core.proxy_verifier import ProxyVerifier
@@ -14,29 +15,7 @@ logging.basicConfig(
 )
 
 
-
-def start_scheduler():
-
-
-    logging.info("应用程序启动...")
-
-    # 获取全局调度器实例 (只需要获取一次)
-    scheduler = GlobalScheduler()
-
-    proxy_pool_name = scheduler_config.get('proxy_pool_name', 'proxy_pool') # 提供默认值
-
-    # --- 初始化和调度 Proxy (抓取器) ---
-    try:
-
-        proxy_instance = Proxy(proxy_pool_name=proxy_pool_name)
-        fetch_interval = int(scheduler_config.get('fetch_interval', 8)) # 假设单位是小时
-        # 直接使用全局 scheduler 添加任务，而不是调用 proxy_instance.start_scheduler
-        scheduler.add_job(proxy_instance.fetch_bajiu_daili, 'interval', seconds=fetch_interval)
-        logging.info(f"代理抓取任务已添加，每 {fetch_interval} 小时执行一次。")
-    except Exception as e:
-        logging.error(f"初始化或调度 Proxy 失败: {e}")
-        # 根据需要决定是否退出
-        exit(1)
+def ProxyVerifier_Process(scheduler,proxy_pool_name):
 
     # --- 初始化和调度 ProxyVerifier (验证器) ---
     try:
@@ -52,6 +31,38 @@ def start_scheduler():
         # 根据需要决定是否退出
         exit(1)
 
+
+def Proxy_Process(scheduler,proxy_pool_name):
+
+    # --- 初始化和调度 Proxy (抓取器) ---
+    try:
+        proxy_instance = Proxy(proxy_pool_name=proxy_pool_name)
+        fetch_interval = int(scheduler_config.get('fetch_interval', 8)) # 假设单位是小时
+        # 直接使用全局 scheduler 添加任务，而不是调用 proxy_instance.start_scheduler
+        scheduler.add_job(proxy_instance.fetch_bajiu_daili, 'interval', hours=fetch_interval)
+        logging.info(f"代理抓取任务已添加，每 {fetch_interval} 小时执行一次。")
+    except Exception as e:
+        logging.error(f"初始化或调度 Proxy 失败: {e}")
+        # 根据需要决定是否退出
+        exit(1)
+
+
+def start_scheduler():
+
+
+    logging.info("应用程序启动...")
+
+    # 获取全局调度器实例 (只需要获取一次)
+    scheduler = GlobalScheduler()
+
+    proxy_pool_name = scheduler_config.get('proxy_pool_name', 'proxy_pool') # 提供默认值
+
+    # --- 启动抓取器 ---
+    Proxy_Process(scheduler, proxy_pool_name)
+
+    # --- 启动验证器 ---
+    ProxyVerifier_Process(scheduler, proxy_pool_name)
+
     # --- 启动调度器 ---
     # 只需要启动一次
     scheduler.start()
@@ -64,9 +75,10 @@ def start_scheduler():
     logging.info("应用程序即将退出。")
 
 
+if __name__ == "__main__":
 
-def close_scheduler():
-    # 关闭全局调度器
-    scheduler = GlobalScheduler()
-    scheduler.stop()
-    logging.info("调度器已关闭。")
+    # 创建 ProxyVerifier 实例
+    verifier = ProxyVerifier()
+    
+    # 调用清理方法
+    verifier.clean_invalid_proxies()

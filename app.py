@@ -6,7 +6,7 @@ from core.proxy_fetcher import Proxy
 from fastapi.concurrency import run_in_threadpool
 from utils.config_reader import flask_config, scheduler_config  # 假设你用这个读取配置
 import uvicorn  # 用于启动 FastAPI 应用
-from main import start_scheduler,close_scheduler  # 假设你有一个函数来启动调度器
+from main import start_scheduler  # 假设你有一个函数来启动调度器
 import sys
 
 
