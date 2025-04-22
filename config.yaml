@@ -11,7 +11,7 @@ fastapi:
 
 scheduler:
   verifier_interval: 30
-  fetch_interval: 8
+  fetch_interval: 60
   verifier_url: 'https://www.kuaidaili.com/'
   proxy_pool_name: 'proxypool'
   logger_name: 'app.log'

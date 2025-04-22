@@ -31,7 +31,7 @@ def start_scheduler():
         proxy_instance = Proxy(proxy_pool_name=proxy_pool_name)
         fetch_interval = int(scheduler_config.get('fetch_interval', 8)) # 假设单位是小时
         # 直接使用全局 scheduler 添加任务，而不是调用 proxy_instance.start_scheduler
-        scheduler.add_job(proxy_instance.fetch_bajiu_daili, 'interval', hours=fetch_interval)
+        scheduler.add_job(proxy_instance.fetch_bajiu_daili, 'interval', seconds=fetch_interval)
         logging.info(f"代理抓取任务已添加，每 {fetch_interval} 小时执行一次。")
     except Exception as e:
         logging.error(f"初始化或调度 Proxy 失败: {e}")
@@ -45,7 +45,7 @@ def start_scheduler():
                 proxy_pool_name=proxy_pool_name
         )
         verifier_interval = int(scheduler_config.get('verifier_interval', 30)) # 假设单位是分钟
-        scheduler.add_job(verifier_instance.clean_invalid_proxies, 'interval', minutes=verifier_interval)
+        scheduler.add_job(verifier_instance.clean_invalid_proxies, 'interval', seconds=verifier_interval)
         logging.info(f"代理验证任务已添加，每 {verifier_interval} 分钟执行一次。")
     except Exception as e:
         logging.error(f"初始化或调度 ProxyVerifier 失败: {e}")

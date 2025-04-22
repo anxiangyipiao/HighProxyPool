@@ -46,6 +46,6 @@ if __name__ == "__main__":
     except Exception as e:
         # 捕获异常并记录日志
         logging.error(f"发生异常: {e}")
-    finally:
-        logging.info("程序退出。")
-        close_scheduler()  # 确保调度器关闭
+    # finally:
+    #     logging.info("程序退出。")
+    #     close_scheduler()  # 确保调度器关闭
