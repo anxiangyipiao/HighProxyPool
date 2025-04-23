@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from core.proxy_fetcher import Proxy
-from core.proxy_verifier import ProxyVerifier
+from core.proxy_verifier import ProxyValidator
 from utils.global_scheduler import GlobalScheduler
 from utils.config_reader import scheduler_config # 假设你用这个读取配置
 import sys
@@ -15,16 +15,18 @@ logging.basicConfig(
 )
 
 
+
+
 def ProxyVerifier_Process(scheduler,proxy_pool_name):
 
     # --- 初始化和调度 ProxyVerifier (验证器) ---
     try:
-        verifier_instance = ProxyVerifier(
+        verifier_instance = ProxyValidator(
                 check_url=scheduler_config.get('verifier_url', 'http://httpbin.org/get'),
                 proxy_pool_name=proxy_pool_name
         )
         verifier_interval = int(scheduler_config.get('verifier_interval', 30)) # 假设单位是分钟
-        scheduler.add_job(verifier_instance.clean_invalid_proxies, 'interval', seconds=verifier_interval)
+        scheduler.add_job(verifier_instance.run_clean_invalid_proxies, 'interval', seconds=verifier_interval)
         logging.info(f"代理验证任务已添加，每 {verifier_interval} 分钟执行一次。")
     except Exception as e:
         logging.error(f"初始化或调度 ProxyVerifier 失败: {e}")
@@ -39,7 +41,7 @@ def Proxy_Process(scheduler,proxy_pool_name):
         proxy_instance = Proxy(proxy_pool_name=proxy_pool_name)
         fetch_interval = int(scheduler_config.get('fetch_interval', 8)) # 假设单位是小时
         # 直接使用全局 scheduler 添加任务，而不是调用 proxy_instance.start_scheduler
-        scheduler.add_job(proxy_instance.fetch_bajiu_daili, 'interval', hours=fetch_interval)
+        scheduler.add_job(proxy_instance.fetch_bajiu_daili, 'interval', seconds=fetch_interval)
         logging.info(f"代理抓取任务已添加，每 {fetch_interval} 小时执行一次。")
     except Exception as e:
         logging.error(f"初始化或调度 Proxy 失败: {e}")
@@ -75,10 +77,3 @@ def start_scheduler():
     logging.info("应用程序即将退出。")
 
 
-if __name__ == "__main__":
-
-    # 创建 ProxyVerifier 实例
-    verifier = ProxyVerifier()
-    
-    # 调用清理方法
-    verifier.clean_invalid_proxies()

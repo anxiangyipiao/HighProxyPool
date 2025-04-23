@@ -1,8 +1,6 @@
-import asyncio
 import logging
 import sys
-import time
-import aiohttp
+import requests
 from utils.redis_client import RedisObject
 import ast
 
@@ -14,97 +12,117 @@ logging.basicConfig(
 )
 
 
-class ProxyVerifier:
+# class ProxyVerifier:
     
-    def __init__(self, check_url: str = "https://www.kuaidaili.com/",proxy_pool_name: str = "proxypool",max_concurrent_validations: int = 10):
-        self.conn = RedisObject().get_connection()
-        self.proxy_pool_name = proxy_pool_name  # Redis 中存储代理的集合名称
-        self.check_url = check_url
-        self.max_concurrent_validations = max_concurrent_validations
-       
-    async def _async_validate_proxy(self, ip_str):
-        """
-        测试单个代理
-        :param ip:
-        :return:
-        """
-
-        headers = {
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            'Connection': 'close'
-        }
-
-        try:
-            # 解析存储的字符串获取代理字典
-            proxy_dict = ast.literal_eval(ip_str)
-            proxy_url = None
-            if isinstance(proxy_dict, dict):
-                if 'http' in proxy_dict:
-                    proxy_url = proxy_dict['http']
-                elif 'https' in proxy_dict:
-                     proxy_url = proxy_dict['https'] # 优先使用 http，如果没有则用 https
-
-            if proxy_url:
-
-                # 使用 aiohttp 测试代理
-                conn = aiohttp.TCPConnector(verify_ssl=False)
-                async with aiohttp.ClientSession(connector=conn) as session:
-                    try:
-                        async with session.get(self.check_url, proxy=proxy_url, timeout=5,headers=headers) as response:
-                            if response.status == 200:
-                                logging.info(f"代理 {proxy_url} 可用")
-
-                            else:
-                                logging.info(f"代理 {proxy_url} 不可用 (状态码: {response.status})")
-                                # 删除无效代理
-                                self.conn.srem(self.proxy_pool_name, ip_str)
-                    except Exception as e:
-                        logging.warning(f"代理 {proxy_url} 测试异常: {e}")
-                        self.conn.srem(self.proxy_pool_name, ip_str)
-        except Exception as e:
-            logging.warning(f"解析代理字符串 {ip_str} 时发生异常: {e}")
-            # 删除无效代理
-            self.conn.srem(self.proxy_pool_name, ip_str)
-
-
-
-
-    def clean_invalid_proxies(self):
-        """
-        (异步) 清理无效代理的主方法
-        """
-        logging.info(f"开始异步执行代理清理任务 (池: {self.proxy_pool_name})...")
-
-        try:
-            
-            ips = list(self.conn.smembers(self.proxy_pool_name))
-            
-            if not ips:
-                logging.info("没有可用的代理 IP")
-                return
-            
-
-            for i in range(0, len(ips), self.max_concurrent_validations):
-                # 分批处理代理 IP 字符串
-                ip_strings = ips[i:i + self.max_concurrent_validations]
-                # 将字节字符串解码为普通字符串
-                ip_strings = [ip.decode('utf-8') for ip in ip_strings]
-
-                loop = asyncio.get_event_loop()
-
-                tasks = [self._async_validate_proxy(ip_str) for ip_str in ip_strings]
-            
-                loop.run_until_complete(asyncio.wait(tasks))
-
-                sys.stdout.flush()
-
-                time.sleep(5)
-
-            logging.info(f"代理清理任务完成 (池: {self.proxy_pool_name})")
-
-        except Exception as e:
-            print('测试器发生错误', e.args)
+#     def __init__(self, check_url: str = "https://www.kuaidaili.com/",proxy_pool_name: str = "proxy_pool"):
+#         self.conn = RedisObject().get_connection()
+#         self.proxy_pool_name = proxy_pool_name  # Redis 中存储代理的集合名称
+#         self.check_url = check_url
         
 
+#     def validate_proxy(self, ip: str) -> bool:
+#         """
+#         验证单个代理是否有效
+#         """
+#         headers = {
+#             'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36",
+#             'Connection': 'close'
+#         }
+#         try:
+#             # {'http': 'http://114.232.110.39:8888'}
+#             # 使用 ast.literal_eval 替代 eval
+#             proxy = ast.literal_eval(ip)
+#             response = requests.get(self.check_url, proxies=proxy, headers=headers, timeout=5)
+#             logging.info(f"代理 {ip} 返回状态码: {response.status_code}")
+#             return response.status_code == 200
+#         except (ValueError, SyntaxError, requests.RequestException) as e:
+#             logging.error(f"验证代理失败: {ip}, 错误: {e}")
+#             return False
+
+#     def clean_invalid_proxies(self):
+#         """
+#         清理 Redis 中的无效代理
+#         """
+#         logging.info("开始清理无效代理...")
+#         try:
+#             ips = self.conn.smembers(self.proxy_pool_name)  # 获取 Redis 集合中的所有代理
+#             for ip in ips:
+#                 ip = ip.decode('utf-8')  # 解码 Redis 中存储的字节数据
+#                 if not self.validate_proxy(ip):
+#                     self.conn.srem(self.proxy_pool_name, ip)  # 删除无效代理
+#                     logging.warning(f"删除无效代理: {ip}")
+#             logging.info("无效代理清理完成")
+#         except Exception as e:
+#             logging.error(f"清理无效代理时发生错误: {e}")
+
    
-    
+
+import asyncio
+import aiohttp
+import logging
+import ast
+
+class ProxyValidator:
+    def __init__(self, check_url: str, proxy_pool_name: str):
+        self.check_url = check_url  # 验证代理的 URL
+        self.conn = RedisObject().get_connection()
+        self.proxy_pool_name = proxy_pool_name  # Redis 中存储代理的集合名称
+
+    async def validate_proxy(self, ip: str) -> bool:
+        """
+        异步验证单个代理是否有效
+        """
+        headers = {
+            'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36",
+            'Connection': 'close'
+        }
+        try:
+            # 使用 ast.literal_eval 替代 eval 解析字符串为字典
+            proxy = ast.literal_eval(ip)
+            async with aiohttp.ClientSession() as session:
+                async with session.get(self.check_url, proxy=proxy['http'], headers=headers, timeout=20) as response:
+                    logging.info(f"代理 {ip} 返回状态码: {response.status}")
+                    return response.status == 200
+        except (ValueError, SyntaxError, aiohttp.ClientError, asyncio.TimeoutError) as e:
+            logging.error(f"验证代理失败: {ip}, 错误: {e}")
+            return False
+
+    async def clean_invalid_proxies(self):
+        """
+        异步清理 Redis 中的无效代理
+        """
+        logging.info("开始清理无效代理...")
+        try:
+            # 获取 Redis 集合中的所有代理
+            ips = await asyncio.to_thread(self.conn.smembers, self.proxy_pool_name)
+            tasks = []
+            for ip in ips:
+                ip = ip.decode('utf-8')  # 解码 Redis 中存储的字节数据
+                tasks.append(self.validate_and_remove(ip))  # 创建异步任务
+            await asyncio.gather(*tasks)  # 并发执行所有任务
+            logging.info("无效代理清理完成")
+        except Exception as e:
+            logging.error(f"清理无效代理时发生错误: {e}")
+
+    async def validate_and_remove(self, ip: str):
+        """
+        验证代理并删除无效代理
+        """
+        if not await self.validate_proxy(ip):
+            await asyncio.to_thread(self.conn.srem, self.proxy_pool_name, ip)  # 删除无效代理
+            logging.warning(f"删除无效代理: {ip}")
+
+    def run_clean_invalid_proxies(self):
+        """
+        同步方法,用于在调度器中调用
+        """
+        try:
+            # 创建新的事件循环
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            # 运行异步清理方法
+            loop.run_until_complete(self.clean_invalid_proxies())
+            # 关闭事件循环
+            loop.close()
+        except Exception as e:
+            logging.error(f"执行代理清理任务时发生错误: {e}")
