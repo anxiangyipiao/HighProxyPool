@@ -33,7 +33,12 @@ def get_proxy():
 
 def test_proxy(proxies):
 
-    url = 'https://www.bilibili.com/'
+    url = 'http://www.bilibili.com/'
+
+    proxies = { 
+        'http': '223.95.58.59:8080',
+        'https':'110.43.221.121:7088',
+    }
 
     try:
         res = requests.get(url, proxies=proxies, timeout=5)
@@ -50,9 +55,11 @@ def test_proxy(proxies):
 
 if __name__ == '__main__':
 
-    ip = get_proxy()
-    print(ip)
-    if ip:
-        test_proxy(ip)
-    else:
-        print('No proxy found')
+    # ip = get_proxy()
+    # print(ip)
+    # if ip:
+        # test_proxy(ip)
+    # else:
+    #     print('No proxy found')
+    ip = None
+    test_proxy(ip)
