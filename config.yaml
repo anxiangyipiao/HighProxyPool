@@ -1,17 +1,16 @@
-
 redis:
-  host: '121.37.171.89'
+  host: "localhost"
   port: 6379
-  password: '123456zax'
-  db: 1
+  password: ""
+  db: 0
 
 fastapi:
-  host: '0.0.0.0'
-  port: 8001
+  host: "0.0.0.0"
+  port: 8000
 
 scheduler:
-  verifier_interval: 30
-  fetch_interval: 60
-  verifier_url: 'http://www.baidu.com/'
-  proxy_pool_name: 'proxypool'
-  logger_name: 'app.log'
+  verifier_interval: 300  # 5分钟验证一次
+  fetch_interval: 1800    # 30分钟获取一次
+  verifier_url: "http://httpbin.org/ip"
+  proxy_pool_name: "proxy_pool"
+  logger_name: "HighProxyPool"
