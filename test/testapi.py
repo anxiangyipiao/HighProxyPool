@@ -36,8 +36,7 @@ def test_proxy(proxies):
     url = 'http://www.bilibili.com/'
 
     proxies = { 
-        'http': '223.95.58.59:8080',
-        'https':'110.43.221.121:7088',
+        'http': '59.54.238.122:18941',
     }
 
     try:
