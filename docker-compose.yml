@@ -1,10 +1,39 @@
 version: "3.9"
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: highproxypool-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: highproxypool-app
     ports:
-      - "8001:8001"  # 将容器的 8001 端口映射到主机的 8001 端口
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    depends_on:
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
 

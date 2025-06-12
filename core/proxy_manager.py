@@ -1,6 +1,8 @@
 import asyncio
 from typing import List, Dict, Optional
 from .fetchers.bajiu_fetcher import BajiuFetcher
+from .fetchers.kuaidaili_fetcher import KuaidailiFetcher
+from .fetchers.proxylistplus_fetcher import ProxyListPlusFetcher
 from .validators.proxy_validator import ProxyValidator
 from storage.storage_interface import StorageInterface
 from storage.redis_storage import RedisStorage
@@ -15,9 +17,11 @@ class ProxyManager:
         self.storage = storage or RedisStorage()
         self.config = config_manager.config
         
-        # 初始化获取器
+        # 初始化获取器 - 添加更多代理源
         self.fetchers = [
             BajiuFetcher(),
+            KuaidailiFetcher(),
+            ProxyListPlusFetcher(),
             # 可以轻松添加更多获取器
         ]
         
@@ -33,27 +37,45 @@ class ProxyManager:
         """从所有源获取代理"""
         total_added = 0
         
+        # 并发获取代理以提高效率
+        tasks = []
         for fetcher in self.fetchers:
-            try:
-                logger.info(f"开始从 {fetcher.get_name()} 获取代理")
-                proxies = await fetcher.fetch_proxies()
-                
-                # 验证并保存代理
-                if proxies:
-                    valid_proxies = await self.validator.validate_proxies(proxies)
-                    for proxy in valid_proxies:
-                        if await self.storage.add_proxy(proxy):
-                            total_added += 1
-                    
-                    logger.info(f"从 {fetcher.get_name()} 成功添加 {len(valid_proxies)} 个有效代理")
-                else:
-                    logger.warning(f"从 {fetcher.get_name()} 未获取到代理")
-                    
-            except Exception as e:
-                logger.error(f"从 {fetcher.get_name()} 获取代理失败: {e}")
+            task = self._fetch_from_source(fetcher)
+            tasks.append(task)
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"获取代理时发生异常: {result}")
+            elif isinstance(result, int):
+                total_added += result
         
         logger.info(f"本次获取总计添加 {total_added} 个有效代理")
         return total_added
+    
+    async def _fetch_from_source(self, fetcher) -> int:
+        """从单个源获取代理"""
+        added_count = 0
+        try:
+            logger.info(f"开始从 {fetcher.get_name()} 获取代理")
+            proxies = await fetcher.fetch_proxies()
+            
+            # 验证并保存代理
+            if proxies:
+                valid_proxies = await self.validator.validate_proxies(proxies)
+                for proxy in valid_proxies:
+                    if await self.storage.add_proxy(proxy):
+                        added_count += 1
+                
+                logger.info(f"从 {fetcher.get_name()} 成功添加 {len(valid_proxies)} 个有效代理")
+            else:
+                logger.warning(f"从 {fetcher.get_name()} 未获取到代理")
+                
+        except Exception as e:
+            logger.error(f"从 {fetcher.get_name()} 获取代理失败: {e}")
+        
+        return added_count
     
     async def get_proxy(self) -> Optional[Dict[str, str]]:
         """获取一个可用代理"""
@@ -88,6 +110,25 @@ class ProxyManager:
         except Exception as e:
             logger.error(f"清理无效代理失败: {e}")
             raise ProxyValidationError(f"清理无效代理失败: {e}")
+    
+    async def get_proxy_statistics(self) -> Dict[str, any]:
+        """获取代理统计信息"""
+        try:
+            total_count = await self.storage.get_proxy_count()
+            all_proxies = await self.storage.get_all_proxies()
+            
+            # 统计不同类型的代理
+            http_count = len([p for p in all_proxies if 'http' in p])
+            
+            return {
+                'total_count': total_count,
+                'http_count': http_count,
+                'fetcher_count': len(self.fetchers),
+                'fetcher_names': [f.get_name() for f in self.fetchers]
+            }
+        except Exception as e:
+            logger.error(f"获取代理统计信息失败: {e}")
+            return {}
     
     def run_fetch_proxies(self):
         """同步方法，用于在调度器中调用"""
