@@ -9,7 +9,7 @@ from utils.exceptions import ProxyValidationError
 class ProxyValidator(ProxyValidatorInterface):
     """代理验证器"""
     
-    def __init__(self, storage: StorageInterface, check_url: str, timeout: int = 10, max_concurrent: int = 50, delay: float = 1):
+    def __init__(self, storage: StorageInterface, check_url: str, timeout: int = 10, max_concurrent: int = 50, delay: float = 0.5):
         self.storage = storage
         self.check_url = check_url
         self.timeout = timeout

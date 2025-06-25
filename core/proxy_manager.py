@@ -4,6 +4,7 @@ from .fetchers.bajiu_fetcher import BajiuFetcher
 from .validators.proxy_validator import ProxyValidator
 from storage.storage_interface import StorageInterface
 from storage.redis_storage import RedisStorage
+from storage.cached_redis_storage import CachedRedisStorage
 from config.settings import config_manager
 from utils.logger import logger
 from utils.exceptions import ProxyValidationError
@@ -12,7 +13,7 @@ class ProxyManager:
     """代理管理器 - 统一管理代理获取、验证和存储"""
     
     def __init__(self, storage: Optional[StorageInterface] = None):
-        self.storage = storage or RedisStorage()
+        self.storage = storage or CachedRedisStorage()
         self.config = config_manager.config
         
         # 初始化获取器
