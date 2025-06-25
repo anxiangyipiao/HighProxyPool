@@ -2,7 +2,7 @@ redis:
   host: "121.37.171.89"
   port: 6379
   password: "123456zax"
-  db: 0
+  db: 1
   max_connections: 20
   socket_timeout: 5
   socket_connect_timeout: 5
@@ -14,9 +14,9 @@ fastapi:
   reload: false
 
 scheduler:
-  verifier_interval: 300  # 5分钟验证一次
-  fetch_interval: 1800    # 30分钟获取一次
-  verifier_url: "http://httpbin.org/ip"
+  verifier_interval: 60  # 5分钟验证一次
+  fetch_interval: 180    # 30分钟获取一次
+  verifier_url: "http://www.baidu.com"
   proxy_pool_name: "proxy_pool"
   logger_name: "HighProxyPool"
   max_workers: 10

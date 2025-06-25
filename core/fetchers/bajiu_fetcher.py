@@ -19,7 +19,7 @@ class BajiuFetcher(BaseFetcher, ProxyFetcherInterface):
         """获取89免费代理"""
         try:
             logger.info(f"开始获取 {self.get_name()} 代理")
-            content = await self.fetch_url(self.url)
+            content = await self.fetch_url_with_browser_async(self.url)
             return self._parse_proxies(content)
         except Exception as e:
             logger.error(f"获取 {self.get_name()} 代理失败: {e}")
@@ -49,7 +49,7 @@ class BajiuFetcher(BaseFetcher, ProxyFetcherInterface):
                     if host and port:
                         proxy = {"http": f"http://{host}:{port}"}
                         proxies.append(proxy)
-                        logger.debug(f"解析到代理: {host}:{port}")
+                        logger.info(f"解析到代理: {host}:{port}")
             
             logger.info(f"成功解析 {len(proxies)} 个代理")
             return proxies

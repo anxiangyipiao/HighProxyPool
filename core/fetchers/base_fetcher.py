@@ -4,6 +4,13 @@ from typing import Dict, Optional
 from utils.logger import logger
 from utils.exceptions import ProxyFetchError
 
+try:
+    from DrissionPage import WebPage
+    DRISSION_AVAILABLE = True
+except ImportError:
+    DRISSION_AVAILABLE = False
+    logger.warning("DrissionPage 未安装，浏览器获取功能不可用")
+
 class BaseFetcher:
     """基础获取器"""
     
@@ -38,3 +45,81 @@ class BaseFetcher:
                     raise ProxyFetchError(f"获取 {url} 失败: {e}")
         
         raise ProxyFetchError(f"获取 {url} 失败，已重试 {self.max_retries} 次")
+    
+    def fetch_url_with_browser(self, url: str, wait_time: int = 3, headless: bool = True) -> str:
+        """使用浏览器获取网页内容（适用于需要JS渲染的页面）
+        
+        Args:
+            url: 目标网址
+            wait_time: 页面加载等待时间（秒）
+            headless: 是否使用无头模式
+            
+        Returns:
+            网页内容
+            
+        Raises:
+            ProxyFetchError: 获取失败时抛出
+        """
+        if not DRISSION_AVAILABLE:
+            raise ProxyFetchError("DrissionPage 未安装，无法使用浏览器获取功能")
+        
+        page = None
+        try:
+            # 创建 WebPage 实例
+            page = WebPage()
+            
+            # 设置用户代理
+            page.set.user_agent(self.headers.get("User-Agent", ""))
+            
+            logger.debug(f"使用浏览器访问: {url}")
+            
+            # 访问页面
+            page.get(url)
+            
+            # 等待页面加载完成
+            if wait_time > 0:
+                page.wait(wait_time)
+            
+            # 获取页面内容
+            content = page.html
+            
+            if not content:
+                raise ProxyFetchError(f"浏览器获取 {url} 返回空内容")
+            
+            logger.debug(f"成功使用浏览器获取 {url} 内容")
+            return content
+            
+        except Exception as e:
+            logger.error(f"浏览器获取 {url} 失败: {e}")
+            raise ProxyFetchError(f"浏览器获取 {url} 失败: {e}")
+        finally:
+            # 确保关闭浏览器
+            if page:
+                try:
+                    page.quit()
+                except:
+                    pass
+    
+    async def fetch_url_with_browser_async(self, url: str, wait_time: int = 3, headless: bool = True) -> str:
+        """异步版本的浏览器获取方法
+        
+        Args:
+            url: 目标网址
+            wait_time: 页面加载等待时间（秒）
+            headless: 是否使用无头模式
+            
+        Returns:
+            网页内容
+        """
+        import concurrent.futures
+        
+        # 在线程池中运行同步的浏览器获取方法
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            return await loop.run_in_executor(
+                executor, 
+                self.fetch_url_with_browser, 
+                url, 
+                wait_time, 
+                headless
+            )
