@@ -9,7 +9,7 @@ from core.proxy_manager import ProxyManager
 from utils.logger import logger
 from utils.monitoring import performance_monitor, HealthChecker
 from config.settings import config_manager
-from utils.scheduler import scheduler
+from utils.scheduler import async_scheduler
 import uvicorn
 
 # 全局代理管理器
@@ -27,20 +27,20 @@ async def lifespan(app: FastAPI):
         # 初始化健康检查器
         health_checker = HealthChecker(proxy_manager, proxy_manager.storage)
         
-        # 启动调度器
-        scheduler.start()
+        # 启动异步调度器
+        await async_scheduler.start()
         
-        # 添加定时任务
+        # 添加定时任务 - 使用异步方法
         config = config_manager.config
-        scheduler.add_job(
-            func=proxy_manager.run_fetch_proxies,
+        async_scheduler.add_async_job(
+            func=proxy_manager.fetch_all_proxies,
             trigger='interval',
             seconds=config.scheduler.fetch_interval,
             job_id='api_fetch_proxies'
         )
         
-        scheduler.add_job(
-            func=proxy_manager.run_clean_proxies,
+        async_scheduler.add_async_job(
+            func=proxy_manager.clean_invalid_proxies,
             trigger='interval',
             seconds=config.scheduler.verifier_interval,
             job_id='api_clean_proxies'
@@ -51,14 +51,8 @@ async def lifespan(app: FastAPI):
             proxy_count = await proxy_manager.get_proxy_count()
             await performance_monitor.collect_metrics(proxy_count)
         
-        def run_metrics_collection():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(collect_performance_metrics())
-            loop.close()
-        
-        scheduler.add_job(
-            func=run_metrics_collection,
+        async_scheduler.add_async_job(
+            func=collect_performance_metrics,
             trigger='interval',
             seconds=60,  # 每分钟收集一次指标
             job_id='collect_metrics'
@@ -73,7 +67,7 @@ async def lifespan(app: FastAPI):
         # 关闭时的清理
         logger.info("FastAPI 应用关闭中...")
         try:
-            scheduler.stop()
+            await async_scheduler.stop()
             await proxy_manager.close()
             logger.info("FastAPI 应用关闭完成")
         except Exception as e:
@@ -170,12 +164,8 @@ async def get_proxy_stats():
 async def refresh_proxies():
     """手动刷新代理API"""
     try:
-        # 在后台线程中执行代理获取
-        def fetch_in_background():
-            proxy_manager.run_fetch_proxies()
-        
-        thread = threading.Thread(target=fetch_in_background)
-        thread.start()
+        # 直接调用异步方法
+        asyncio.create_task(proxy_manager.fetch_all_proxies())
         
         return JSONResponse(
             status_code=200,
@@ -192,12 +182,8 @@ async def refresh_proxies():
 async def clean_proxies():
     """手动清理代理API"""
     try:
-        # 在后台线程中执行代理清理
-        def clean_in_background():
-            proxy_manager.run_clean_proxies()
-        
-        thread = threading.Thread(target=clean_in_background)
-        thread.start()
+        # 直接调用异步方法
+        asyncio.create_task(proxy_manager.clean_invalid_proxies())
         
         return JSONResponse(
             status_code=200,
@@ -205,31 +191,6 @@ async def clean_proxies():
         )
     except Exception as e:
         logger.error(f"清理代理API错误: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"服务器内部错误: {str(e)}"
-        )
-
-@app.get("/api/status", summary="系统状态", description="获取系统运行状态")
-async def get_status():
-    """获取系统状态API"""
-    try:
-        proxy_count = await proxy_manager.get_proxy_count()
-        job_info = scheduler.get_job_info()
-        
-        return JSONResponse(
-            status_code=200,
-            content={
-                "status": "success",
-                "data": {
-                    "proxy_count": proxy_count,
-                    "scheduler_running": scheduler._is_started,
-                    "jobs": job_info
-                }
-            }
-        )
-    except Exception as e:
-        logger.error(f"获取状态API错误: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"服务器内部错误: {str(e)}"
@@ -258,29 +219,6 @@ async def health_check():
             detail=f"服务器内部错误: {str(e)}"
         )
 
-@app.get("/api/metrics", summary="性能指标", description="获取系统性能指标")
-async def get_metrics():
-    """获取性能指标API"""
-    try:
-        metrics_summary = performance_monitor.get_metrics_summary()
-        system_info = performance_monitor.get_system_info()
-        
-        return JSONResponse(
-            status_code=200,
-            content={
-                "status": "success",
-                "data": {
-                    "metrics": metrics_summary,
-                    "system": system_info
-                }
-            }
-        )
-    except Exception as e:
-        logger.error(f"获取性能指标API错误: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"服务器内部错误: {str(e)}"
-        )
 
 @app.get("/", summary="首页", description="API首页")
 async def root():

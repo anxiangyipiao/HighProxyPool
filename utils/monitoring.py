@@ -1,7 +1,7 @@
 import time
 import psutil
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from utils.logger import logger
@@ -44,12 +44,10 @@ class PerformanceMonitor:
     async def collect_metrics(self, proxy_count: int = 0) -> PerformanceMetrics:
         """收集系统性能指标"""
         try:
-            # 系统资源使用情况
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
             
-            # 计算平均响应时间
             avg_response_time = sum(self.response_times) / len(self.response_times) if self.response_times else 0.0
             
             metrics = PerformanceMetrics(
@@ -64,7 +62,6 @@ class PerformanceMonitor:
                 avg_response_time=avg_response_time
             )
             
-            # 添加到历史记录
             self.metrics_history.append(metrics)
             if len(self.metrics_history) > self.max_history_size:
                 self.metrics_history.pop(0)
@@ -90,7 +87,6 @@ class PerformanceMonitor:
             return {
                 'system': {
                     'platform': psutil.platform,
-                    'python_version': f"{psutil.version_info}",
                     'cpu_count': psutil.cpu_count(),
                     'boot_time': datetime.fromtimestamp(psutil.boot_time()).isoformat(),
                 },
@@ -112,7 +108,7 @@ class PerformanceMonitor:
             return {}
         
         try:
-            recent_metrics = self.metrics_history[-10:]  # 最近10条记录
+            recent_metrics = self.metrics_history[-10:]
             
             return {
                 'current': asdict(self.metrics_history[-1]),
@@ -146,7 +142,6 @@ class HealthChecker:
             'system_resources': await self._check_system_resources(),
         }
         
-        # 计算整体健康状态
         all_healthy = all(check['healthy'] for check in checks.values())
         
         self.health_status = {
@@ -156,7 +151,7 @@ class HealthChecker:
         }
         
         if not all_healthy:
-            logger.warning(f"健康检查发现问题: {self.health_status}")
+            logger.warning(f"健康检查发现问题")
         
         return self.health_status
     

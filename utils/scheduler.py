@@ -1,34 +1,29 @@
-import logging
+import asyncio
 import atexit
-import threading
-import time
-from typing import Optional, Callable, Any
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.executors.pool import ThreadPoolExecutor
+from typing import Optional, Callable, Any, Union
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.executors.asyncio import AsyncIOExecutor
 from utils.logger import logger
 from utils.exceptions import SchedulerError
 
-class EnhancedScheduler:
-    """增强的调度器，支持更好的错误处理和监控"""
+class AsyncEnhancedScheduler:
+    """异步增强调度器，支持异步任务调度"""
     
     _instance = None
-    _lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            with cls._lock:
-                if not cls._instance:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._initialized = False
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
         return cls._instance
 
     def __init__(self, max_workers: int = 10):
         if self._initialized:
             return
         
-        # 配置执行器
+        # 配置异步执行器
         executors = {
-            'default': ThreadPoolExecutor(max_workers),
+            'default': AsyncIOExecutor(),
         }
         
         # 任务默认配置
@@ -38,7 +33,7 @@ class EnhancedScheduler:
             'misfire_grace_time': 30
         }
         
-        self.scheduler = BackgroundScheduler(
+        self.scheduler = AsyncIOScheduler(
             executors=executors,
             job_defaults=job_defaults
         )
@@ -48,75 +43,66 @@ class EnhancedScheduler:
         # 注册退出处理
         atexit.register(self._cleanup)
 
-    def start(self):
-        """启动调度器"""
+    async def start(self):
+        """启动异步调度器"""
         if not self._is_started:
             try:
                 self.scheduler.start()
                 self._is_started = True
-                logger.info("增强调度器已启动")
+                logger.info("异步增强调度器已启动")
             except Exception as e:
-                logger.error(f"启动调度器失败: {e}")
-                raise SchedulerError(f"启动调度器失败: {e}")
+                logger.error(f"启动异步调度器失败: {e}")
+                raise SchedulerError(f"启动异步调度器失败: {e}")
         else:
-            logger.warning("调度器已在运行")
+            logger.warning("异步调度器已在运行")
 
-    def stop(self):
-        """停止调度器"""
+    async def stop(self):
+        """停止异步调度器"""
         if self._is_started:
             try:
                 self.scheduler.shutdown(wait=False)
                 self._is_started = False
-                logger.info("调度器已停止")
+                logger.info("异步调度器已停止")
             except Exception as e:
-                logger.error(f"停止调度器失败: {e}")
-                raise SchedulerError(f"停止调度器失败: {e}")
+                logger.error(f"停止异步调度器失败: {e}")
+                raise SchedulerError(f"停止异步调度器失败: {e}")
 
-    def add_job(
+    def add_async_job(
         self, 
-        func: Callable, 
+        func: Union[Callable, Callable[..., Any]], 
         trigger: str, 
         job_id: Optional[str] = None,
         replace_existing: bool = True,
         **kwargs
     ) -> str:
-        """
-        添加任务到调度器
-        
-        Args:
-            func: 要执行的函数
-            trigger: 触发器类型
-            job_id: 任务ID
-            replace_existing: 是否替换现有任务
-            **kwargs: 触发器参数
-        
-        Returns:
-            任务ID
-        """
+        """添加异步任务到调度器"""
         try:
-            # 包装函数以添加错误处理
-            def wrapped_func():
+            # 包装异步函数以添加错误处理
+            async def wrapped_async_func():
                 try:
-                    logger.info(f"开始执行任务: {func.__name__}")
-                    func()
-                    logger.info(f"任务执行完成: {func.__name__}")
+                    logger.info(f"开始执行异步任务: {func.__name__}")
+                    if asyncio.iscoroutinefunction(func):
+                        await func()
+                    else:
+                        func()
+                    logger.info(f"异步任务执行完成: {func.__name__}")
                 except Exception as e:
-                    logger.error(f"任务执行失败 {func.__name__}: {e}")
+                    logger.error(f"异步任务执行失败 {func.__name__}: {e}")
             
             job = self.scheduler.add_job(
-                wrapped_func,
+                wrapped_async_func,
                 trigger,
                 id=job_id,
                 replace_existing=replace_existing,
                 **kwargs
             )
             
-            logger.info(f"任务已添加: {func.__name__} (ID: {job.id}), 触发器: {trigger}, 参数: {kwargs}")
+            logger.info(f"异步任务已添加: {func.__name__} (ID: {job.id}), 触发器: {trigger}")
             return job.id
             
         except Exception as e:
-            logger.error(f"添加任务失败: {e}")
-            raise SchedulerError(f"添加任务失败: {e}")
+            logger.error(f"添加异步任务失败: {e}")
+            raise SchedulerError(f"添加异步任务失败: {e}")
 
     def remove_job(self, job_id: str):
         """移除任务"""
@@ -146,24 +132,13 @@ class EnhancedScheduler:
             job_info.append(info)
         return job_info
 
-    def keep_alive(self):
-        """保持主线程活动"""
-        logger.info("主线程进入 keep_alive 模式。按 Ctrl+C 退出。")
-        try:
-            while True:
-                # 定期检查调度器状态
-                if self._is_started:
-                    job_count = len(self.get_jobs())
-                    logger.debug(f"调度器运行中，当前任务数: {job_count}")
-                time.sleep(60)
-        except (KeyboardInterrupt, SystemExit):
-            logger.info("收到退出信号，准备关闭...")
-            self.stop()
-
     def _cleanup(self):
         """清理资源"""
         if self._is_started:
-            self.stop()
+            try:
+                asyncio.run(self.stop())
+            except Exception as e:
+                logger.error(f"清理调度器失败: {e}")
 
-# 全局调度器实例
-scheduler = EnhancedScheduler()
+# 全局异步调度器实例
+async_scheduler = AsyncEnhancedScheduler()

@@ -1,7 +1,5 @@
 import aiohttp
 import asyncio
-import threading
-import json
 from typing import Dict, List
 from ..interfaces.validator_interface import ProxyValidatorInterface
 from storage.storage_interface import StorageInterface
@@ -18,15 +16,13 @@ class ProxyValidator(ProxyValidatorInterface):
         self.max_concurrent = max_concurrent
         self.delay = delay  # 添加延迟参数，单位为秒
         self.headers = {
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
     
     async def validate_proxy(self, proxy: Dict[str, str]) -> bool:
         """验证单个代理"""
         try:
             proxy_url = proxy.get('http', '')
-            print(f"正在验证代理: {proxy_url}")
             if not proxy_url:
                 return False
             
@@ -90,23 +86,4 @@ class ProxyValidator(ProxyValidatorInterface):
         except Exception as e:
             logger.error(f"清理无效代理时发生错误: {e}")
             raise ProxyValidationError(f"清理无效代理失败: {e}")
-    
-    def run_clean_invalid_proxies(self):
-        """同步方法，用于在调度器中调用"""
-        try:
-            logger.info("开始执行代理清理任务...")
-            # 检查是否已有运行中的事件循环
-            try:
-                loop = asyncio.get_running_loop()
-                # 如果有运行中的循环，在新线程中执行
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(asyncio.run, self.clean_invalid_proxies())
-                    future.result()
-            except RuntimeError:
-                # 没有运行中的循环，直接使用 asyncio.run
-                asyncio.run(self.clean_invalid_proxies())
-            
-            logger.info("代理清理任务完成")
-        except Exception as e:
-            logger.error(f"执行代理清理任务时发生错误: {e}")
+
