@@ -110,16 +110,18 @@ class BaseFetcher:
             
         Returns:
             网页内容
+            
+        Raises:
+            ProxyFetchError: 获取失败时抛出
         """
-        import concurrent.futures
+        if not DRISSION_AVAILABLE:
+            raise ProxyFetchError("DrissionPage 未安装，无法使用浏览器获取功能")
         
-        # 在线程池中运行同步的浏览器获取方法
-        loop = asyncio.get_event_loop()
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            return await loop.run_in_executor(
-                executor, 
-                self.fetch_url_with_browser, 
-                url, 
-                wait_time, 
-                headless
-            )
+        # 直接复用同步方法的逻辑，避免代码重复
+        return await asyncio.to_thread(
+            self.fetch_url_with_browser, 
+            url, 
+            wait_time, 
+            headless
+        )
+

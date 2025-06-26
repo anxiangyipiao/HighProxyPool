@@ -1,4 +1,4 @@
-import asyncio
+
 from typing import Dict, Optional
 from .fetchers.bajiu_fetcher import BajiuFetcher
 from .validators.proxy_validator import ProxyValidator
