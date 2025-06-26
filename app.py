@@ -2,9 +2,10 @@ import asyncio
 import threading
 import time
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from core.proxy_manager import ProxyManager
 from utils.logger import logger
 from utils.monitoring import performance_monitor, HealthChecker
@@ -15,6 +16,32 @@ import uvicorn
 # 全局代理管理器
 proxy_manager = ProxyManager()
 health_checker = None
+
+# API Key认证依赖
+def verify_api_key(request: Request) -> bool:
+    """验证API Key"""
+    auth_config = config_manager.config.auth
+    
+    # 如果未启用认证，直接通过
+    if not auth_config.enabled:
+        return True
+    
+    # 获取API Key
+    api_key = request.headers.get(auth_config.header_name)
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=401,
+            detail=f"缺少认证头: {auth_config.header_name}"
+        )
+    
+    if api_key != auth_config.api_key:
+        raise HTTPException(
+            status_code=403,
+            detail="无效的API Key"
+        )
+    
+    return True
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -107,7 +134,7 @@ async def add_performance_monitoring(request: Request, call_next):
         raise e
 
 @app.get("/api/get_proxy", summary="获取代理", description="获取一个可用的代理IP")
-async def get_proxy():
+async def get_proxy(request: Request, _: bool = Depends(verify_api_key)):
     """获取代理API"""
     try:
         proxy = await proxy_manager.get_proxy()
@@ -129,7 +156,7 @@ async def get_proxy():
         )
 
 @app.get("/api/proxy_count", summary="获取代理数量", description="获取代理池中的代理总数")
-async def get_proxy_count():
+async def get_proxy_count(request: Request, _: bool = Depends(verify_api_key)):
     """获取代理数量API"""
     try:
         count = await proxy_manager.get_proxy_count()
@@ -145,7 +172,7 @@ async def get_proxy_count():
         )
 
 @app.get("/api/proxy_stats", summary="获取代理统计", description="获取详细的代理统计信息")
-async def get_proxy_stats():
+async def get_proxy_stats(request: Request, _: bool = Depends(verify_api_key)):
     """获取代理统计信息API"""
     try:
         stats = await proxy_manager.get_proxy_statistics()
@@ -161,7 +188,7 @@ async def get_proxy_stats():
         )
 
 @app.post("/api/refresh_proxies", summary="刷新代理", description="手动触发代理获取任务")
-async def refresh_proxies():
+async def refresh_proxies(request: Request, _: bool = Depends(verify_api_key)):
     """手动刷新代理API"""
     try:
         # 直接调用异步方法
@@ -179,7 +206,7 @@ async def refresh_proxies():
         )
 
 @app.post("/api/clean_proxies", summary="清理代理", description="手动触发代理清理任务")
-async def clean_proxies():
+async def clean_proxies(request: Request, _: bool = Depends(verify_api_key)):
     """手动清理代理API"""
     try:
         # 直接调用异步方法

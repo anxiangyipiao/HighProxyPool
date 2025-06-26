@@ -49,11 +49,18 @@ class ProxyConfig:
             ]
 
 @dataclass
+class AuthConfig:
+    enabled: bool = False
+    api_key: str = ""
+    header_name: str = "X-API-Key"
+
+@dataclass
 class AppConfig:
     redis: RedisConfig
     fastapi: FastAPIConfig
     scheduler: SchedulerConfig
     proxy: ProxyConfig
+    auth: AuthConfig
 
 class ConfigManager:
     _instance = None
@@ -87,7 +94,8 @@ class ConfigManager:
             redis=RedisConfig(**raw_config['redis']),
             fastapi=FastAPIConfig(**raw_config['fastapi']),
             scheduler=SchedulerConfig(**raw_config['scheduler']),
-            proxy=ProxyConfig(**raw_config.get('proxy', {}))
+            proxy=ProxyConfig(**raw_config.get('proxy', {})),
+            auth=AuthConfig(**raw_config.get('auth', {}))
         )
         
         logger.info("配置加载完成")
