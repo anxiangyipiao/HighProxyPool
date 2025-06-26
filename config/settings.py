@@ -12,8 +12,10 @@ class RedisConfig:
     password: str
     db: int
     max_connections: int = 20
-    socket_timeout: int = 5
-    socket_connect_timeout: int = 5
+    socket_timeout: int = 30  # 更新默认值
+    socket_connect_timeout: int = 15  # 更新默认值
+    retry_on_timeout: bool = True  # 新增重试配置
+    health_check_interval: int = 30  # 新增健康检查间隔
 
 @dataclass
 class FastAPIConfig:

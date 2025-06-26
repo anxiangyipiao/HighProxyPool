@@ -46,17 +46,17 @@ async def lifespan(app: FastAPI):
             job_id='api_clean_proxies'
         )
         
-        # 添加性能监控任务
-        async def collect_performance_metrics():
-            proxy_count = await proxy_manager.get_proxy_count()
-            await performance_monitor.collect_metrics(proxy_count)
+        # # 添加性能监控任务
+        # async def collect_performance_metrics():
+        #     proxy_count = await proxy_manager.get_proxy_count()
+        #     await performance_monitor.collect_metrics(proxy_count)
         
-        async_scheduler.add_async_job(
-            func=collect_performance_metrics,
-            trigger='interval',
-            seconds=60,  # 每分钟收集一次指标
-            job_id='collect_metrics'
-        )
+        # async_scheduler.add_async_job(
+        #     func=collect_performance_metrics,
+        #     trigger='interval',
+        #     seconds=600,  # 每分钟收集一次指标
+        #     job_id='collect_metrics'
+        # )
         
         logger.info("FastAPI 应用启动完成")
         yield

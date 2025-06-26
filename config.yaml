@@ -4,8 +4,10 @@ redis:
   password: "123456zax"
   db: 1
   max_connections: 20
-  socket_timeout: 5
-  socket_connect_timeout: 5
+  socket_timeout: 30  # 增加到30秒
+  socket_connect_timeout: 15  # 增加到15秒
+  retry_on_timeout: true  # 超时重试
+  health_check_interval: 30  # 健康检查间隔
 
 fastapi:
   host: "0.0.0.0"
@@ -14,8 +16,8 @@ fastapi:
   reload: false
 
 scheduler:
-  verifier_interval: 900  # 15分钟验证一次
-  fetch_interval: 3600    # 60分钟获取一次
+  verifier_interval: 90  # 15分钟验证一次
+  fetch_interval: 360    # 60分钟获取一次
   verifier_url: "http://www.baidu.com"
   proxy_pool_name: "proxy_pool"
   logger_name: "HighProxyPool"

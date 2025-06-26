@@ -40,7 +40,9 @@ class CachedRedisStorage(StorageInterface):
                     max_connections=self.config.max_connections,
                     socket_timeout=self.config.socket_timeout,
                     socket_connect_timeout=self.config.socket_connect_timeout,
-                    decode_responses=True
+                    decode_responses=True,
+                    retry_on_timeout=getattr(self.config, 'retry_on_timeout', True),
+                    health_check_interval=getattr(self.config, 'health_check_interval', 30)
                 )
                 
                 self._redis = redis.Redis(connection_pool=pool)
@@ -50,6 +52,24 @@ class CachedRedisStorage(StorageInterface):
                 logger.error(f"Redis 连接失败: {e}")
                 raise StorageError(f"Redis 连接失败: {e}")
         return self._redis
+
+    async def _retry_redis_operation(self, operation, max_retries=3, delay=1):
+        """Redis操作重试机制"""
+        for attempt in range(max_retries):
+            try:
+                return await operation()
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise e
+                logger.warning(f"Redis操作失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(delay * (2 ** attempt))  # 指数退避
+                # 重置连接
+                if self._redis:
+                    try:
+                        await self._redis.close()
+                    except:
+                        pass
+                    self._redis = None
     
     async def _update_cache(self):
         """更新本地缓存"""
@@ -131,14 +151,17 @@ class CachedRedisStorage(StorageInterface):
             raise StorageError(f"获取随机代理失败: {e}")
     
     async def get_all_proxies(self) -> List[Dict[str, str]]:
-        """获取所有代理"""
-        try:
+        """获取所有代理（带重试机制）"""
+        async def _get_operation():
             redis_conn = await self._get_connection()
             self._stats['redis_operations'] += 1
             proxy_strs = await redis_conn.smembers(self.pool_name)
             
             import json
             return [json.loads(proxy_str) for proxy_str in proxy_strs]
+        
+        try:
+            return await self._retry_redis_operation(_get_operation, max_retries=3, delay=2)
         except Exception as e:
             logger.error(f"获取所有代理失败: {e}")
             raise StorageError(f"获取所有代理失败: {e}")

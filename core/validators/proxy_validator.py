@@ -61,29 +61,91 @@ class ProxyValidator(ProxyValidatorInterface):
         return valid_proxies
     
     async def clean_invalid_proxies(self):
-        """清理无效代理"""
+        """清理无效代理（优化版本，支持分批处理）"""
         logger.info("开始清理无效代理...")
-        try:
-            all_proxies = await self.storage.get_all_proxies()
-            logger.info(f"当前代理总数: {len(all_proxies)}")
-            
-            if not all_proxies:
-                logger.info("代理池为空，无需清理")
-                return
-            
-            # 批量验证
-            valid_proxies = await self.validate_proxies(all_proxies)
-            
-            # 移除无效代理
-            invalid_count = 0
-            for proxy in all_proxies:
-                if proxy not in valid_proxies:
-                    await self.storage.remove_proxy(proxy)
-                    invalid_count += 1
-            
-            logger.info(f"清理完成，移除无效代理: {invalid_count} 个，剩余有效代理: {len(valid_proxies)} 个")
-            
-        except Exception as e:
-            logger.error(f"清理无效代理时发生错误: {e}")
-            raise ProxyValidationError(f"清理无效代理失败: {e}")
+        batch_size = 100  # 分批处理，每批100个代理
+        max_retries = 3
+        
+        for retry in range(max_retries):
+            try:
+                # 先获取代理总数
+                total_count = await self.storage.get_proxy_count()
+                logger.info(f"当前代理总数: {total_count}")
+                
+                if total_count == 0:
+                    logger.info("代理池为空，无需清理")
+                    return
+                
+                # 如果代理数量较少，直接获取所有代理
+                if total_count <= batch_size:
+                    all_proxies = await self.storage.get_all_proxies()
+                    valid_proxies = await self.validate_proxies(all_proxies)
+                    
+                    # 计算需要移除的代理
+                    invalid_proxies = [proxy for proxy in all_proxies if proxy not in valid_proxies]
+                    
+                    if invalid_proxies:
+                        # 批量移除无效代理
+                        removed_count = await self.storage.batch_remove_proxies(invalid_proxies)
+                        logger.info(f"清理完成，移除无效代理: {removed_count} 个，剩余有效代理: {len(valid_proxies)} 个")
+                    else:
+                        logger.info("所有代理都有效，无需清理")
+                else:
+                    # 大量代理时，采用随机抽样验证策略
+                    logger.info(f"代理数量较多({total_count})，采用抽样验证策略")
+                    await self._clean_by_sampling()
+                
+                return  # 成功完成，退出重试循环
+                
+            except Exception as e:
+                logger.error(f"清理无效代理时发生错误 (尝试 {retry + 1}/{max_retries}): {e}")
+                if retry == max_retries - 1:
+                    # 最后一次重试失败，记录错误但不抛出异常
+                    logger.error("清理无效代理多次尝试失败，请检查Redis连接状态")
+                    return
+                
+                # 等待后重试
+                await asyncio.sleep(5 * (retry + 1))
+    
+    async def _clean_by_sampling(self):
+        """通过抽样方式清理代理（用于大量代理的情况）"""
+        sample_size = 200  # 每次抽样验证200个代理
+        invalid_count = 0
+        total_validated = 0
+        
+        for batch_num in range(5):  # 最多进行5轮抽样
+            try:
+                # 随机获取一批代理进行验证
+                sample_proxies = []
+                for _ in range(sample_size):
+                    proxy = await self.storage.get_random_proxy()
+                    if proxy and proxy not in sample_proxies:
+                        sample_proxies.append(proxy)
+                    if len(sample_proxies) >= sample_size:
+                        break
+                
+                if not sample_proxies:
+                    break
+                
+                logger.info(f"第 {batch_num + 1} 轮抽样验证，验证 {len(sample_proxies)} 个代理")
+                
+                # 验证这批代理
+                valid_proxies = await self.validate_proxies(sample_proxies)
+                invalid_proxies = [proxy for proxy in sample_proxies if proxy not in valid_proxies]
+                
+                # 移除无效代理
+                if invalid_proxies:
+                    removed = await self.storage.batch_remove_proxies(invalid_proxies)
+                    invalid_count += removed
+                
+                total_validated += len(sample_proxies)
+                
+                # 添加延迟避免频繁操作
+                await asyncio.sleep(2)
+                
+            except Exception as e:
+                logger.error(f"第 {batch_num + 1} 轮抽样验证失败: {e}")
+                break
+        
+        logger.info(f"抽样清理完成，共验证 {total_validated} 个代理，移除无效代理: {invalid_count} 个")
 
