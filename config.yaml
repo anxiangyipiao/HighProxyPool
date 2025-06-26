@@ -14,8 +14,8 @@ fastapi:
   reload: false
 
 scheduler:
-  verifier_interval: 60  # 15分钟验证一次
-  fetch_interval: 100    # 60分钟获取一次
+  verifier_interval: 900  # 15分钟验证一次
+  fetch_interval: 3600    # 60分钟获取一次
   verifier_url: "http://www.baidu.com"
   proxy_pool_name: "proxy_pool"
   logger_name: "HighProxyPool"
