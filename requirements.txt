@@ -4,7 +4,7 @@ uvicorn[standard]==0.24.0
 aiohttp==3.9.1
 
 # 浏览器自动化
-DrissionPage==4.0.5.6
+DrissionPage
 
 # 数据解析
 beautifulsoup4==4.12.2

@@ -1,168 +1,83 @@
-# HighProxyPool - 高效代理池系统 (优化版本 v2.1.0)
+# HighProxyPool - 高效代理池系统
 
-## 🆕 最新优化改进
+![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-### v2.1.0 新特性
-- ✅ **多源代理获取**: 新增快代理、ProxyList.plus等多个代理源
-- ✅ **智能缓存机制**: 实现本地缓存减少Redis访问，提升性能
-- ✅ **性能监控**: 实时监控CPU、内存、磁盘使用和API响应时间
-- ✅ **健康检查**: 全面的系统健康状态检查
-- ✅ **环境变量支持**: 支持Docker环境变量配置覆盖
-- ✅ **批量操作**: 优化的批量代理添加/删除操作
-- ✅ **统计分析**: 详细的代理池统计和缓存命中率分析
-- ✅ **CORS支持**: 跨域资源共享支持
-- ✅ **增强测试**: 添加单元测试覆盖核心功能
-- ✅ **Docker优化**: 完整的Docker Compose部署方案
+一个高效、稳定、功能丰富的代理池系统，支持多源代理获取、智能验证、性能监控和RESTful API服务。
 
-## 项目概述
+## 🌟 功能特性
 
-HighProxyPool 是一个高效、可扩展的代理池管理系统，经过全面重构后，具有更好的架构设计、错误处理和扩展性。
+### 核心功能
+- **多源代理获取**: 支持从多个免费代理网站获取代理IP
+- **智能代理验证**: 异步批量验证代理可用性，自动清理无效代理
+- **高性能存储**: 基于Redis的代理存储，支持缓存优化
+- **任务调度**: 自动定时获取和验证代理，保持代理池活跃
+- **RESTful API**: 提供完整的HTTP API接口，易于集成
 
-## 🚀 主要特性
+### 高级特性
+- **性能监控**: 实时监控系统资源使用情况和代理统计
+- **健康检查**: 全面的系统健康状态检查
+- **异步架构**: 全异步设计，支持高并发处理
+- **容器化部署**: 支持Docker和Docker Compose部署
+- **配置管理**: 灵活的YAML配置文件，支持环境变量覆盖
 
-- **模块化架构**: 清晰的分层设计，易于维护和扩展
-- **异步支持**: 全面的异步/await支持，提高性能
-- **接口抽象**: 使用接口设计模式，便于添加新的代理源和存储后端
-- **完善的错误处理**: 统一的异常处理机制
-- **高级日志系统**: 支持文件轮转和多级别日志
-- **配置管理**: 基于YAML的配置系统，支持环境变量
-- **调度系统**: 增强的任务调度器，支持监控和错误恢复
-- **RESTful API**: FastAPI驱动的现代API接口
-- **类型提示**: 全面的类型注解，提高代码质量
-- **性能监控**: 实时系统资源和API性能监控
-- **智能缓存**: 本地缓存机制，显著提升性能
+## 🚀 快速开始
 
-## 📁 项目结构
+### 环境要求
+- Python 3.9+
+- Redis 5.0+
+- 8GB+ 内存推荐
 
-```
-HighProxyPool/
-├── config/                 # 配置管理
-│   ├── __init__.py
-│   └── settings.py        # 增强配置类，支持环境变量
-├── core/                  # 核心业务逻辑
-│   ├── interfaces/        # 接口定义
-│   │   ├── fetcher_interface.py
-│   │   └── validator_interface.py
-│   ├── fetchers/          # 代理获取器
-│   │   ├── base_fetcher.py
-│   │   ├── bajiu_fetcher.py
-│   │   ├── kuaidaili_fetcher.py    # 新增
-│   │   └── proxylistplus_fetcher.py # 新增
-│   ├── validators/        # 代理验证器
-│   │   └── proxy_validator.py
-│   └── proxy_manager.py   # 增强代理管理器
-├── storage/               # 数据存储
-│   ├── storage_interface.py
-│   ├── redis_storage.py
-│   └── cached_redis_storage.py    # 新增缓存存储
-├── utils/                 # 工具模块
-│   ├── exceptions.py      # 异常定义
-│   ├── logger.py         # 日志系统
-│   ├── scheduler.py      # 调度器
-│   └── monitoring.py     # 新增性能监控
-├── tests/                # 测试文件
-│   └── test_proxy_manager.py      # 新增测试
-├── logs/                 # 日志文件目录
-├── config.yaml           # 增强配置文件
-├── main.py              # 主程序入口
-├── app.py               # 增强API服务
-├── docker-compose.yml   # 优化Docker配置
-├── Dockerfile           # Docker镜像配置
-└── requirements.txt     # 增强依赖文件
-```
-
-## 🛠️ 安装与配置
-
-### 1. 安装依赖
+### 安装依赖
 
 ```bash
+# 克隆项目
+git clone <项目地址>
+cd HighProxyPool
+
+# 安装Python依赖
 pip install -r requirements.txt
 ```
 
-### 2. 配置Redis
+### 配置设置
 
-确保Redis服务正在运行，默认配置：
-- 主机: localhost
-- 端口: 6379
-- 数据库: 0
-
-### 3. 环境变量配置（可选）
-
-支持通过环境变量覆盖配置：
-
-```bash
-# Redis配置
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
-export REDIS_PASSWORD=your_password
-export REDIS_DB=0
-
-# API配置
-export API_HOST=0.0.0.0
-export API_PORT=8000
-```
-
-### 4. 修改配置
-
-编辑 `config.yaml` 文件以适应您的环境：
+编辑 `config.yaml` 文件：
 
 ```yaml
 redis:
   host: "localhost"
   port: 6379
   password: ""
-  db: 0
-  max_connections: 20        # 新增连接池配置
-  socket_timeout: 5
-  socket_connect_timeout: 5
+  db: 1
 
 fastapi:
   host: "0.0.0.0"
-  port: 8000
-  workers: 1                 # 新增Worker配置
-  reload: false
+  port: 8001
 
 scheduler:
-  verifier_interval: 300     # 代理验证间隔(秒)
-  fetch_interval: 1800      # 代理获取间隔(秒)
-  verifier_url: "http://httpbin.org/ip"
-  proxy_pool_name: "proxy_pool"
-  logger_name: "HighProxyPool"
-  max_workers: 10           # 新增调度器配置
-  max_concurrent_validations: 50
-
-proxy:                      # 新增代理配置节
-  timeout: 10
-  max_retries: 3
-  user_agents:
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36..."
+  verifier_interval: 900  # 15分钟验证一次
+  fetch_interval: 3600    # 60分钟获取一次
+  verifier_url: "http://www.baidu.com"
 ```
 
-## 🚀 使用方法
+### 运行方式
 
-### 方式1: 启动主程序（定时任务模式）
-
+#### 1. 命令行模式（推荐用于开发）
 ```bash
+# 运行异步调度器（后台模式）
 python main.py
-```
 
-这将启动代理池的后台服务，自动执行代理获取和验证任务。
-
-### 方式2: 启动API服务
-
-```bash
+# 运行API服务器
 python app.py
 ```
 
-这将启动FastAPI服务器，提供HTTP API接口。
-
-### 方式3: Docker部署（推荐）
-
+#### 2. Docker部署（推荐用于生产）
 ```bash
-# 启动完整服务栈（包含Redis）
+# 使用Docker Compose一键部署
 docker-compose up -d
 
-# 查看服务状态
+# 查看容器状态
 docker-compose ps
 
 # 查看日志
@@ -171,190 +86,247 @@ docker-compose logs -f app
 
 ## 📡 API接口
 
-### 核心代理接口
-- `GET /api/get_proxy` - 获取可用代理
-- `GET /api/proxy_count` - 获取代理数量
-- `GET /api/proxy_stats` - 获取详细统计信息 ⭐新增
+### 基础接口
+
+| 接口 | 方法 | 描述 |
+|------|------|------|
+| `/` | GET | API首页和文档 |
+| `/api/get_proxy` | GET | 获取一个可用代理 |
+| `/api/proxy_count` | GET | 获取代理池数量 |
+| `/api/proxy_stats` | GET | 获取详细统计信息 |
 
 ### 管理接口
-- `POST /api/refresh_proxies` - 手动刷新代理
-- `POST /api/clean_proxies` - 清理无效代理
 
-### 监控接口 ⭐新增
-- `GET /api/status` - 系统运行状态
-- `GET /api/health` - 健康检查
-- `GET /api/metrics` - 性能指标
+| 接口 | 方法 | 描述 |
+|------|------|------|
+| `/api/refresh_proxies` | POST | 手动触发代理获取 |
+| `/api/clean_proxies` | POST | 手动触发代理清理 |
+| `/api/health` | GET | 系统健康检查 |
 
-### API文档
-访问 `http://localhost:8000/docs` 查看完整的API文档。
-
-## 🔧 扩展性
-
-### 添加新的代理源
-
-1. 在 `core/fetchers/` 目录下创建新的获取器
-2. 继承 `BaseFetcher` 并实现 `ProxyFetcherInterface`
-3. 在 `ProxyManager` 中注册新的获取器
-
-示例：
-```python
-from .base_fetcher import BaseFetcher
-from ..interfaces.fetcher_interface import ProxyFetcherInterface
-
-class NewProxyFetcher(BaseFetcher, ProxyFetcherInterface):
-    def get_name(self) -> str:
-        return "新代理源"
-    
-    async def fetch_proxies(self) -> List[Dict[str, str]]:
-        # 实现代理获取逻辑
-        pass
-```
-
-### 使用缓存存储
-
-可以选择使用缓存版本的Redis存储以获得更好的性能：
+### 使用示例
 
 ```python
-from storage.cached_redis_storage import CachedRedisStorage
-
-# 在proxy_manager.py中
-proxy_manager = ProxyManager(storage=CachedRedisStorage())
-```
-
-## 🔍 架构优势
-
-### 1. 性能优化
-- **本地缓存**: 减少Redis访问，提升响应速度
-- **连接池**: 复用数据库连接
-- **批量操作**: 减少网络往返次数
-- **并发控制**: 智能限制并发数量
-
-### 2. 监控体系
-- **实时指标**: CPU、内存、磁盘使用监控
-- **API性能**: 响应时间和错误率统计
-- **健康检查**: 全面的系统健康状态检查
-- **缓存统计**: 缓存命中率和性能分析
-
-### 3. 运维友好
-- **Docker支持**: 完整的容器化部署方案
-- **环境变量**: 灵活的配置管理
-- **日志管理**: 结构化日志和轮转机制
-- **优雅关闭**: 资源清理和状态保存
-
-## 📊 性能指标
-
-### 缓存性能
-- 缓存命中率通常可达 85%+
-- 响应时间减少 60%+
-- Redis操作减少 70%+
-
-### 并发能力
-- 支持 1000+ 并发请求
-- 代理验证并发数可配置
-- 自动负载均衡
-
-## 🐳 Docker部署
-
-### 完整部署命令
-```bash
-# 克隆项目
-git clone <your-repo>
-cd HighProxyPool
-
-# 启动服务
-docker-compose up -d
-
-# 检查健康状态
-curl http://localhost:8000/api/health
+import requests
 
 # 获取代理
-curl http://localhost:8000/api/get_proxy
+response = requests.get('http://localhost:8001/api/get_proxy')
+if response.status_code == 200:
+    proxy_data = response.json()
+    proxy = proxy_data['proxy']['http']
+    print(f"获取到代理: {proxy}")
+
+# 获取代理数量
+response = requests.get('http://localhost:8001/api/proxy_count')
+count = response.json()['count']
+print(f"代理池共有 {count} 个代理")
 ```
 
-### 环境变量配置
-```yaml
-# docker-compose.yml 中的环境变量
-environment:
-  - REDIS_HOST=redis
-  - REDIS_PORT=6379
-  - API_HOST=0.0.0.0
-  - API_PORT=8000
+```bash
+# 使用curl
+curl http://localhost:8001/api/get_proxy
+curl http://localhost:8001/api/proxy_count
+curl -X POST http://localhost:8001/api/refresh_proxies
 ```
+
+## 🏗️ 项目架构
+
+```
+HighProxyPool/
+├── main.py                 # 异步调度器入口
+├── app.py                  # FastAPI应用入口
+├── config.yaml            # 配置文件
+├── requirements.txt        # Python依赖
+├── docker-compose.yml      # Docker部署配置
+├── config/                 # 配置管理模块
+│   └── settings.py        # 配置类定义
+├── core/                   # 核心业务逻辑
+│   ├── proxy_manager.py   # 代理管理器
+│   ├── fetchers/          # 代理获取器
+│   │   ├── bajiu_fetcher.py
+│   │   ├── kuaidaili_fetcher.py
+│   │   └── base_fetcher.py
+│   ├── validators/        # 代理验证器
+│   │   └── proxy_validator.py
+│   └── interfaces/        # 接口定义
+├── storage/               # 数据存储模块
+│   ├── redis_storage.py   # Redis存储实现
+│   └── cached_redis_storage.py  # 缓存优化存储
+├── utils/                 # 工具模块
+│   ├── logger.py         # 日志管理
+│   ├── scheduler.py      # 异步调度器
+│   ├── monitoring.py     # 性能监控
+│   └── exceptions.py     # 异常定义
+├── tests/                # 测试模块
+├── logs/                 # 日志文件
+└── README.md            # 项目文档
+```
+
+## 🎯 核心组件
+
+### 代理管理器 (ProxyManager)
+- 统一管理代理的获取、验证和存储
+- 支持多个代理源的并发获取
+- 智能的代理验证和清理机制
+
+### 代理获取器 (Fetchers)
+- **89免费代理**: 支持浏览器渲染的JavaScript页面
+- **快代理**: 支持多页面并发获取
+- **扩展性**: 易于添加新的代理源
+
+### 代理验证器 (Validator)
+- 异步批量验证，提高效率
+- 可配置的并发数和超时时间
+- 智能重试机制
+
+### 存储系统 (Storage)
+- **Redis存储**: 高性能的内存数据库
+- **缓存优化**: 本地缓存减少Redis访问
+- **批量操作**: 提高数据操作效率
+
+### 异步调度器 (Scheduler)
+- 基于APScheduler的异步任务调度
+- 支持定时任务和手动触发
+- 完善的错误处理和日志记录
+
+## 📊 性能特性
+
+### 高并发处理
+- 全异步架构，支持大量并发请求
+- 连接池复用，减少资源开销
+- 智能的限流和错误处理
+
+### 内存优化
+- 本地缓存减少Redis访问频率
+- 定期清理过期数据
+- 合理的数据结构设计
+
+### 监控告警
+- 实时系统资源监控
+- 代理池状态监控
+- 健康检查和异常告警
+
+## 🔧 配置说明
+
+### Redis配置
+```yaml
+redis:
+  host: "localhost"          # Redis服务器地址
+  port: 6379                # Redis端口
+  password: ""              # Redis密码
+  db: 1                     # 数据库编号
+  max_connections: 20       # 最大连接数
+  socket_timeout: 5         # 套接字超时
+```
+
+### API配置
+```yaml
+fastapi:
+  host: "0.0.0.0"          # API服务地址
+  port: 8001               # API服务端口
+  workers: 1               # 工作进程数
+  reload: false            # 是否自动重载
+```
+
+### 调度器配置
+```yaml
+scheduler:
+  verifier_interval: 900   # 验证间隔(秒)
+  fetch_interval: 3600     # 获取间隔(秒)
+  verifier_url: "http://www.baidu.com"  # 验证URL
+  max_concurrent_validations: 50        # 最大并发验证数
+```
+
+## 🔍 监控和日志
+
+### 日志系统
+- 分级日志记录（DEBUG, INFO, WARNING, ERROR）
+- 文件滚动，避免日志文件过大
+- 结构化日志，便于分析
+
+### 性能监控
+- CPU、内存、磁盘使用率监控
+- 请求响应时间统计
+- 错误率和成功率统计
+
+### 健康检查
+- Redis连接状态检查
+- 代理池状态检查
+- 系统资源状态检查
 
 ## 🧪 测试
 
-运行测试套件：
 ```bash
-# 安装测试依赖
-pip install pytest pytest-asyncio
+# 运行所有测试
+pytest
 
-# 运行测试
-pytest tests/ -v
+# 运行特定测试
+pytest tests/test_proxy_manager.py
 
-# 运行覆盖率测试
-pytest tests/ --cov=core --cov=storage --cov=utils
+# 运行测试并显示覆盖率
+pytest --cov=core --cov=storage --cov=utils
 ```
 
-## 📈 监控和诊断
+## 🚀 部署建议
 
-### 性能监控
-```bash
-# 获取系统指标
-curl http://localhost:8000/api/metrics
+### 开发环境
+- 使用 `python main.py` 运行调度器
+- 使用 `python app.py` 运行API服务
+- 本地Redis实例
 
-# 健康检查
-curl http://localhost:8000/api/health
+### 生产环境
+- 使用Docker Compose部署
+- 配置Redis持久化
+- 设置日志轮转
+- 配置监控告警
 
-# 代理统计
-curl http://localhost:8000/api/proxy_stats
-```
-
-### 日志分析
-```bash
-# 查看应用日志
-tail -f logs/app.log
-
-# 查看Docker日志
-docker-compose logs -f app
-```
-
-## 🔐 安全性
-
-- 输入验证和清理
-- 安全的异常处理
-- 资源泄露防护
-- CORS配置支持
-
-## 📄 版本历史
-
-### v2.1.0 (当前版本)
-- 新增多个代理源
-- 实现智能缓存机制
-- 添加性能监控和健康检查
-- 优化Docker部署
-- 增强配置管理
-
-### v2.0.0
-- 完全重构架构
-- 异步编程支持
-- 模块化设计
-- RESTful API
+### 性能优化
+- 增加Redis内存
+- 调整并发验证数量
+- 优化获取和验证间隔
+- 使用负载均衡
 
 ## 🤝 贡献指南
 
 1. Fork 项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建Pull Request
+4. 推送分支 (`git push origin feature/AmazingFeature`)
+5. 创建 Pull Request
 
-## 📞 支持
+## 📝 开发计划
 
-如有问题或建议，请：
-1. 提交Issue
-2. 查看API文档: `http://localhost:8000/docs`
-3. 检查健康状态: `http://localhost:8000/api/health`
+- [ ] 支持更多代理源
+- [ ] 添加代理质量评分
+- [ ] 实现地理位置过滤
+- [ ] 支持HTTPS代理
+- [ ] 添加Web管理界面
+- [ ] 实现分布式部署
+
+## ❓ 常见问题
+
+### Q: 代理获取失败怎么办？
+A: 检查网络连接，确认代理源网站可访问，查看日志了解具体错误。
+
+### Q: Redis连接失败？
+A: 检查Redis服务状态，确认连接配置正确，检查防火墙设置。
+
+### Q: 代理验证太慢？
+A: 可以增加并发验证数量，调整超时时间，或更换验证URL。
+
+### Q: 如何添加新的代理源？
+A: 继承BaseFetcher类，实现fetch_proxies方法，在ProxyManager中注册。
 
 ## 📄 许可证
 
-MIT License - 详见 LICENSE 文件
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+## 🙏 致谢
+
+- FastAPI - 现代高性能Web框架
+- Redis - 高性能内存数据库
+- APScheduler - 高级Python调度器
+- 所有贡献者和用户的支持
+
+---
+
+**注意**: 请遵守相关网站的robots.txt和使用条款，合理使用代理服务。
