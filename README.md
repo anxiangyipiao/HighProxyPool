@@ -98,6 +98,137 @@ HighProxyPool/
 └── tests/                # 测试模块
 ```
 
+## 🏛️ 系统架构设计
+
+```mermaid
+graph TB
+    subgraph "客户端层"
+        Client[HTTP客户端]
+        Browser[浏览器]
+        Script[脚本程序]
+    end
+
+    subgraph "API服务层 (FastAPI)"
+        API[FastAPI服务器<br/>app.py]
+        Router[路由层]
+        Middleware[中间件<br/>CORS, 性能监控]
+    end
+
+    subgraph "核心业务层"
+        ProxyMgr[代理管理器<br/>ProxyManager]
+        Scheduler[异步调度器<br/>AsyncScheduler]
+        
+        subgraph "代理获取模块"
+            BaseFetcher[基础获取器<br/>BaseFetcher]
+            BajiuFetcher[89代理获取器]
+            KuaidailiF[快代理获取器]
+            ProxyListF[ProxyList获取器]
+        end
+        
+        subgraph "代理验证模块"
+            ProxyValidator[代理验证器]
+            ValidatorInterface[验证器接口]
+        end
+    end
+
+    subgraph "存储层"
+        RedisStorage[Redis存储<br/>RedisStorage]
+        CachedStorage[缓存存储<br/>CachedRedisStorage]
+        Redis[(Redis数据库)]
+    end
+
+    subgraph "监控与工具层"
+        Monitor[性能监控器<br/>PerformanceMonitor]
+        HealthChecker[健康检查器<br/>HealthChecker]
+        Logger[日志系统<br/>Logger]
+        Exceptions[异常处理]
+    end
+
+    subgraph "外部数据源"
+        Source1[89代理网站]
+        Source2[快代理网站]
+        Source3[其他代理源]
+        TestSite[验证目标站点<br/>百度等]
+    end
+
+    %% 客户端到API的连接
+    Client --> API
+    Browser --> API
+    Script --> API
+
+    %% API内部流程
+    API --> Router
+    Router --> Middleware
+    Middleware --> ProxyMgr
+
+    %% 核心业务流程
+    ProxyMgr --> ProxyValidator
+    ProxyMgr --> BaseFetcher
+    ProxyMgr --> RedisStorage
+    
+    Scheduler --> ProxyMgr
+    
+    %% 获取器继承关系
+    BaseFetcher --> BajiuFetcher
+    BaseFetcher --> KuaidailiF
+    BaseFetcher --> ProxyListF
+
+    %% 存储层关系
+    RedisStorage --> Redis
+    CachedStorage --> RedisStorage
+    ProxyMgr --> CachedStorage
+
+    %% 外部数据源连接
+    BajiuFetcher --> Source1
+    KuaidailiF --> Source2
+    ProxyListF --> Source3
+    ProxyValidator --> TestSite
+
+    %% 监控系统连接
+    API --> Monitor
+    ProxyMgr --> HealthChecker
+    HealthChecker --> Monitor
+    ProxyMgr --> Logger
+    API --> Logger
+
+    %% 样式设置
+    classDef apiLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef coreLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef storageLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef monitorLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef externalLayer fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class API,Router,Middleware apiLayer
+    class ProxyMgr,Scheduler,BaseFetcher,BajiuFetcher,KuaidailiF,ProxyListF,ProxyValidator,ValidatorInterface coreLayer
+    class RedisStorage,CachedStorage,Redis storageLayer
+    class Monitor,HealthChecker,Logger,Exceptions monitorLayer
+    class Source1,Source2,Source3,TestSite externalLayer
+```
+
+### 🔄 系统工作流程
+
+1. **代理获取流程**：
+   - 调度器定时触发代理获取任务
+   - 代理管理器调用各个获取器从不同源站抓取代理
+   - 获取的代理通过验证器进行可用性验证
+   - 有效代理存储到Redis中
+
+2. **代理验证流程**：
+   - 定时任务触发代理池清理
+   - 从Redis中获取代理进行批量验证
+   - 移除失效的代理，保持代理池质量
+
+3. **API服务流程**：
+   - 客户端通过HTTP请求获取代理
+   - FastAPI路由处理请求
+   - 代理管理器从Redis获取可用代理
+   - 返回代理信息给客户端
+
+4. **监控流程**：
+   - 性能监控器收集系统指标
+   - 健康检查器定期检查各组件状态
+   - 日志系统记录操作和异常信息
+
 ## ⚙️ 配置说明
 
 **config.yaml** 主要配置项：
@@ -122,6 +253,93 @@ scheduler:
   verifier_url: "http://www.baidu.com"
   max_concurrent_validations: 50
 ```
+
+## 🚀 功能优化建议
+
+### 📈 性能优化
+
+1. **代理质量评分系统**
+   - 为每个代理添加成功率、响应时间等质量指标
+   - 优先返回高质量代理
+   - 支持按质量筛选代理
+
+2. **智能负载均衡**
+   - 实现代理使用频率统计
+   - 避免过度使用单个代理
+   - 支持地域/运营商分组
+
+3. **缓存优化**
+   - 增加本地内存缓存层(Redis + Local Cache)
+   - 实现代理预热机制
+   - 支持缓存失效策略
+
+### 🛡️ 稳定性增强
+
+4. **故障恢复机制**
+   - 增加Redis集群支持
+   - 实现数据备份和恢复
+   - 支持多Redis实例切换
+
+5. **限流和熔断**
+   - API请求限流
+   - 代理源访问频率控制
+   - 异常熔断保护
+
+6. **重试机制优化**
+   - 指数退避重试策略
+   - 不同类型错误的差异化处理
+   - 重试次数和间隔可配置
+
+### 🔍 监控和观测
+
+7. **高级监控功能**
+   - Prometheus + Grafana 集成
+   - 代理使用情况分析
+   - 实时告警系统
+
+8. **详细日志分析**
+   - 结构化日志输出
+   - 支持日志级别动态调整
+   - 集成ELK日志分析栈
+
+9. **性能指标扩展**
+   - 代理响应时间分布
+   - 成功率趋势分析
+   - 资源使用情况监控
+
+### 🔧 功能扩展
+
+10. **多协议支持**
+    - HTTP/HTTPS代理
+    - SOCKS4/SOCKS5代理
+    - 透明代理支持
+
+11. **代理源扩展**
+    - 支持更多免费代理网站
+    - 付费代理源集成
+    - 自定义代理源配置
+
+12. **API功能增强**
+    - 支持按地区/类型筛选代理
+    - 批量获取代理接口
+    - 代理使用统计API
+    - WebSocket实时推送
+
+### 🔐 安全性提升
+
+13. **访问控制**
+    - API Key认证
+    - IP白名单
+    - 访问频率限制
+
+14. **数据安全**
+    - 敏感信息加密存储
+    - 安全的配置文件管理
+    - 审计日志
+
+
+
+
 
 ## 🔧 扩展开发
 
