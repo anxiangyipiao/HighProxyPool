@@ -1,7 +1,7 @@
 redis:
-  host: "121.37.171.89"
+  host: ""
   port: 6379
-  password: "123456zax"
+  password: ""
   db: 1
   max_connections: 20
   socket_timeout: 30  # 增加到30秒
